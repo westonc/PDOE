@@ -1,1 +1,20 @@
-PDOE: PHP Data Objects Extended
+~ PDOE: (P)HP (D)ata (O)bjects (E)xtended ~
+
+On one hand, conventional database APIs make programmers write unecessary SQL and boilerplate code for simple operations. On the other hand, object-relational mapping is "The Vietnam of Computer Science" (see: http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx ).  
+
+PDOE means to apply targeted force to limited goals, namely:
+
+1) Include some of the functions/advantages of the ActiveRecord pattern (easy SQL-free method invocations for retrieving, inserting, updating, and deleting database records) down at the API Level:
+
+	$aa = array('firstname' => 'John', 'lastname' => 'Smith', 'email' => 'jsmith@devnull.not', 'phone' => '3215559876');
+	$p = new PDOE("sqlite:$filename");
+	$p->saverec('person',$aa);
+
+2) Reduce boilerplate with functional-style processing of select query results:
+
+	$p->operate(array(
+		'sql' => 'SELECT * FROM PERSON',
+		'f' => function ($row) {
+			return "\n<tr><td>".implode('</td><td>',$row).'</td></tr>';
+		}
+	));
