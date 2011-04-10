@@ -58,7 +58,7 @@ class Test_PDOE_SQLite extends WTestSet {
 	function test_fetch() {
 		return $this->assert(
 			is_array($f1 = $this->pdoe->fetch('person',1)),
-			'fetch 1 (mode id) failed'.$this->_dberr($this->pdoe)
+			'fetch 1 (mode id) failed (yielded '.var_export($f1,true).') ( DB ERROR: '.$this->_dberr($this->pdoe).' )'
 
 		) && $this->assert(
 			$this->cmpTestRec($f1,$this->rec1),
@@ -66,8 +66,7 @@ class Test_PDOE_SQLite extends WTestSet {
 
 		) && $this->assert(
 			is_array($f2 = $this->pdoe->fetch('person',array('firstname'=>'Chad'))),
-			'fetch 2 (mode parameter) failed'.$this->_dberr($this->pdoe)
-
+			'fetch 2 (mode parameter) failed '.$this->_dberr($this->pdoe)
 		) && $this->assert(
 			$this->cmpTestRec($f2,$this->rec2),
 			'fetch 2 result not equal to rec2'
@@ -78,7 +77,7 @@ class Test_PDOE_SQLite extends WTestSet {
 
 		) && $this->assert(
 			$this->cmpTestRec($f3,$this->rec3),
-			'fetch 3 result not equal to rec3'
+			'fetch 3 ('.var_export($f3,true).') result not equal to rec3'
 		);
 	}
 
@@ -149,16 +148,81 @@ class Test_PDOE_SQLite extends WTestSet {
 		);
 	}
 
-	/*function test_select() {
+/* Database record state at this point:
+1,John,Smith,jsmith@devnull.not,3215559876
+2,Chad,Vader,chadv@empire.not,3215550123
+3,Moo,Cow,moo@pasture.not,3215559876
+4,Vlad,Impaler,vlad@sparklers.not,9165550000 */
+
+	function test_operate() {
+
+		function test_operate_reducer($row,$acc = 1) { 
+			$acc = $acc ? $acc : 1;
+			return $row['id'] * $acc; 
+		}
+
+		$idsReduced = $this->pdoe->operate(array(
+			'table'		=> 'person',
+			'reduceBy'	=> 'test_operate_reducer'));
+		$rv = $this->assert($idsReduced == 1*2*3*4,"reduction $idsReduced instead of 24");
+
+		function test_operate_mapper($row) { return strlen($row['lastname']); }
+
+		$namesMapped = $this->pdoe->operate(array(
+			'table'		=> 'person',
+			'mapWith'	=> 'test_operate_mapper'));
+		$rv = $rv && $this->assert($namesMapped == array(5,5,3,7),
+			"map [".implode(',',$namesMapped)."] instead of [5,5,3,7]");
+
+		function test_operate_collector($row) { echo ' ',$row['firstname']; }
+
+		ob_start();
+
+		$this->pdoe->operate(array(
+			'table'	=> 'person',
+			'f'		=> 'test_operate_collector'));	
+		$buf = ob_get_clean();
+		$ref = ' John Chad Moo Vlad';
+		$rv = $rv && $this->assert($buf == $ref,"collector got $buf instead of $ref");
+
+		$ts = new _Test_Operate();
+
+		$this->pdoe->operate(array(
+			'sql'	=> 'SELECT * FROM person',
+			'o'		=> $ts,
+			'm'		=> 'collectPhones'));
+
+		$ref = array('3215559876','3215550123','3215559876','9165550000');
+
+		$rv = $rv && $this->assert($ts->phones == $ref,
+			'collected phones ['.implode(',',$ts->phones).'] instead of ['.implode(',',$ref).']'
+		);
+
+		return $rv;
 	} 
 
 	function test_updateMultipleRecords() {
+		$this->pdoe->updaterec('person',
+			array('firstname' => 'Bruce'), 	//Mind if we call you Bruce?
+			':id > 2'
+		);
+		$this->rec3fetched = $this->pdoe->fetch('person',3);
+		$this->rec4fetched = $this->pdoe->fetch('person',4);
+
+		return 
+			$this->assert($this->rec3fetched['firstname'] == 'Bruce',
+				'record 3 firstname not changed to Bruce')
+		 && $this->assert($this->rec4fetched['firstname'] == 'Bruce',
+				'record 4 firstname not changed to Bruce');
 	} 
 
 	function test_deleteMultipleRecords() {
+		$where = array('firstname' => 'Bruce');
+		$this->pdoe->deleterec('person',$where);
+		return 
+			$this->assert(!$this->pdoe->fetch('person',$where),
+				'Not all Bruces deleted');
 	} 
-	*/
-
 
 	function test_destroyDB() {
 		return $this->assert(
@@ -170,5 +234,26 @@ class Test_PDOE_SQLite extends WTestSet {
 		);
 	} 
 }
+
+class _Test_Operate {
+	/* Can't nest classes in PHP? Otherwise this would be in test_operate */
+	function withRow($row) { echo "\n",implode(',',$row); }
+	function collectIds($row) { if(isset($row['id'])) $this->ids[] = $row['id']; }
+	function collectFirstNames($row) { 
+		if(isset($row['firstname'])) $this->firstnames[] = $row['firstnames']; 
+	}
+	function collectLastNames($row) { 
+		if(isset($row['lastname'])) $this->lastnames[] = $row['lastnames']; 
+	}
+	function collectEmails($row) { 
+		if(isset($row['email'])) $this->emails[] = $row['email']; 
+	}
+	function collectPhones($row) { 
+		if(isset($row['phone'])) $this->phones[] = $row['phone']; 
+	}
+}
+
+
+
 
 ?>
