@@ -154,51 +154,60 @@ class Test_PDOE_SQLite extends WTestSet {
 3,Moo,Cow,moo@pasture.not,3215559876
 4,Vlad,Impaler,vlad@sparklers.not,9165550000 */
 
-	function test_operate() {
+	function test_reduce() {
 
-		function test_operate_reducer($row,$acc = 1) { 
+		function reduce_cb($row,$acc = 1) { 
 			$acc = $acc ? $acc : 1;
 			return $row['id'] * $acc; 
 		}
 
-		$idsReduced = $this->pdoe->operate(array(
+		$idsReduced = $this->pdoe->reduce(array(
 			'table'		=> 'person',
-			'reduceBy'	=> 'test_operate_reducer'));
-		$rv = $this->assert($idsReduced == 1*2*3*4,"reduction $idsReduced instead of 24");
+			'callback'	=> 'reduce_cb'));
+		return $this->assert($idsReduced == 1*2*3*4,"reduction $idsReduced instead of 24");
+	}
 
-		function test_operate_mapper($row) { return strlen($row['lastname']); }
+	function test_map() {
 
-		$namesMapped = $this->pdoe->operate(array(
+		function map_cb($row) { return strlen($row['lastname']); }
+
+		$namesMapped = $this->pdoe->map(array(
 			'table'		=> 'person',
-			'mapWith'	=> 'test_operate_mapper'));
-		$rv = $rv && $this->assert($namesMapped == array(5,5,3,7),
+			'callback'	=> 'map_cb'));
+
+		return $this->assert($namesMapped == array(5,5,3,7),
 			"map [".implode(',',$namesMapped)."] instead of [5,5,3,7]");
+	}
 
-		function test_operate_collector($row) { echo ' ',$row['firstname']; }
+	function test_walk() {
+
+		function walk_cb($row) { echo ' ',$row['firstname']; }
 
 		ob_start();
 
-		$this->pdoe->operate(array(
-			'table'	=> 'person',
-			'f'		=> 'test_operate_collector'));	
+		$this->pdoe->walk(array(
+			'table'		=> 'person',
+			'callback'	=> 'walk_cb'));	
 		$buf = ob_get_clean();
 		$ref = ' John Chad Moo Vlad';
-		$rv = $rv && $this->assert($buf == $ref,"collector got $buf instead of $ref");
+		return $this->assert($buf == $ref,"collector got $buf instead of $ref");
 
-		$ts = new _Test_Operate();
+	}
 
-		$this->pdoe->operate(array(
-			'sql'	=> 'SELECT * FROM person',
-			'o'		=> $ts,
-			'm'		=> 'collectPhones'));
+	function test_walk_obj_cb() {
+
+		$ts = new _Test_Walk();
+
+		$this->pdoe->walk(array(
+			'sql'		=> 'SELECT * FROM person',
+			'callback'	=> array($ts,'collectPhones')
+		));
 
 		$ref = array('3215559876','3215550123','3215559876','9165550000');
 
-		$rv = $rv && $this->assert($ts->phones == $ref,
+		return $this->assert($ts->phones == $ref,
 			'collected phones ['.implode(',',$ts->phones).'] instead of ['.implode(',',$ref).']'
 		);
-
-		return $rv;
 	} 
 
 	function test_updateMultipleRecords() {
@@ -235,7 +244,7 @@ class Test_PDOE_SQLite extends WTestSet {
 	} 
 }
 
-class _Test_Operate {
+class _Test_Walk {
 	/* Can't nest classes in PHP? Otherwise this would be in test_operate */
 	function withRow($row) { echo "\n",implode(',',$row); }
 	function collectIds($row) { if(isset($row['id'])) $this->ids[] = $row['id']; }

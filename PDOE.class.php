@@ -9,26 +9,72 @@ class PDOE extends PDO {
 		$this->driver = substr($dsn,0,strpos($dsn,':'));
 	}
 
-	function operate($args) {
+	/* ** "Op" Functions ** 
+		Functions that (potentially build), prepare and operate over the results of an SQL Query 
+
+		There are three of 'em: map, reduce, and walk
+
+		Each takes an associative array of arguments, which *must* contain:
+
+			'callback' - a valid PHP callback
+
+		and either: 
+
+			'sql' - a valid SQL SELECT query
+				OR
+			'table' - a valid table name in the database this PDOE object is working in
+
+		additional arguments may be:
+			
+			'limit' - a non-negative integer 
+			'sort' -
+			'where' -
+			'cols' -
+
+	 */
+
+	function map($args) {
+		$cb = $this->_checkCallback($args,__FUNCTION__);
+		$sth = $this->_buildSelect($args);
+		$fetchOpts = isset($args['fetchOpts']) ? $args['fetchOpts'] : PDO::FETCH_ASSOC;
+		while($row = $sth->fetch($fetchOpts)) 
+			$rv[] = call_user_func($cb,$row);
+		return $rv;
+	}
+
+	function reduce($args) {
+		$cb = $this->_checkCallback($args,__FUNCTION__);
+		$sth = $this->_buildSelect($args);
+		$fetchOpts = isset($args['fetchOpts']) ? $args['fetchOpts'] : PDO::FETCH_ASSOC;
+		$rv = isset($args['r0']) ? $args['r0'] : null;
+		while($row = $sth->fetch($fetchOpts)) 
+			$rv = call_user_func($cb,$row,$rv);
+		return $rv;
+	}
+
+	function walk($args) {
+		$cb = $this->_checkCallback($args,__FUNCTION__);
+		$sth = $this->_buildSelect($args);
+		$fetchOpts = isset($args['fetchOpts']) ? $args['fetchOpts'] : PDO::FETCH_ASSOC;
+		while($row = $sth->fetch($fetchOpts)) 
+			call_user_func($cb,$row);
+	}
+
+	function _checkCallback($argset,$funcname) {
+		if(!isset($argset['callback']))
+			throw new Exception("PDOE::$funcname cannot execute w/o a callback");
+		if(!is_callable($argset['callback']))
+			throw new Exception("PDOE::$funcname passed invalid callback");
+		return $argset['callback'];
+	}
+
+	function _buildSelect($args) {
 		extract($args);
-		/* potential arguments:
-			sql:
 
-			table:
-			limit:	
-			sort:
-			where:	
-			cols:
+		if(!isset($sql)) {
+			if(!isset($table)) //Not exactly sure what we're doing here, then. 
+				throw new Exception('No query or table specifier passed PDOE::op.');
 
-			o:
-			m:
-
-			mapWith:
-			reduceBy:
-			f:
-		 */
-		$fetchOpts = isset($fetchOpts) ? $fetchOpts : PDO::FETCH_ASSOC;
-		if( isset($table) && !isset($sql) ) {
 			$cols = isset($cols) ? 
 				(is_array($cols) ? implode(', ',$cols) : $cols) :
 				'*';
@@ -52,7 +98,7 @@ class PDOE extends PDO {
 					$orderBy = null;
 			} else
 				$orderBy = null;
-		
+	
 			if( isset($where) ) {
 				if(is_array($where)) {
 					$tmp = $this->array2where($where);
@@ -64,38 +110,20 @@ class PDOE extends PDO {
 
 			$sql = "select $cols from $table $where $limit $offset $orderBy";
 		}
-		if( isset($sql) ) 
-			$sth = $this->prepare($sql);
 
+		$sth = $this->prepare($sql);
 		if(!isset($sth)) {
-			throw new Exception("No statement to operate over");
+			throw new Exception("PDOE::op couldn't prepare query |$sql|, no statement handle to operate over");
 		} else if( !($sth instanceof PDOStatement) ) {
-			throw new Exception("Statement handle not PDOStatement");
+			throw new Exception("PDOE::op ended up with non-PDOStatement statement handle. Weird.");
 		} else if(! $sth->execute(isset($params) ? $params : null) ) {
-			throw new Exception('Error executing statement: '.$sth->errorInfo());
-		} else if( isset($mapWith) ) {
-			while($row = $sth->fetch($fetchOpts))
-				$rv[] = $mapWith($row);
-		} else if( isset($reduceBy) ) {
-			$rv = isset($rInit) ? $rInit : null;
-			while($row = $sth->fetch($fetchOpts)) {
-				$rv = $reduceBy($row,$rv);
-			}
-		} else if( isset($f) ) {
- 			while($row = $sth->fetch($fetchOpts)) 
-				$f($row);		
-			$rv = $sth->rowCount();
-		} else if(isset($o) && isset($m)) {
-			while ($row = $sth->fetch($fetchOpts))
-				$o->$m($row);	
-			$rv = $sth->rowCount();
-		} else {
-			throw new Exception('No function passed for operation.');
+			throw new Exception('PDOE::op: Error executing statement: '.$sth->errorInfo());
 		} 
-
-		return $rv;
+		return $sth;
 	}
+	/* end of the op functions */
 
+	/* yeah, I'm not sure I remember what this is for. Utility for getting dates in MySQL format? */
 	function datef($d=null,$timeInFormat = false) {
 		$this->_msg("CALL: datef($d,$timeInFormat)");
 		$t = is_numeric($d) ? $d : strtotime($d);
@@ -106,6 +134,12 @@ class PDOE extends PDO {
 		return $rv;
 	}
 
+
+	/* Generic "save" record function -- figures out if you need INSERT or UPDATE based on 
+		1) whether you're explicitly passing a primary key through $identifier (UPDATE)
+		2) whether there's an entry in the record you're passing through $rec which has a key
+		   that matches the name of the primary key for $table
+	*/
 	function saverec($table,$rec,$identifier=null) {
 		$this->_msg("CALL: PDOE::saverec($table,$rec,$identifier)");
 		if(is_array($identifier) && (count(identifier) > 0)) { 
@@ -121,6 +155,7 @@ class PDOE extends PDO {
 		return $rv;
 	}
 
+	/* Builds/executes an UPDATE Query */
 	function updaterec($table,$rec,$where=null) {
 		$this->_msg("CALL: PDOE::updaterec($table,$rec,$where)");
 		// possibly query could be hashed by table and where parameters
@@ -156,6 +191,7 @@ class PDOE extends PDO {
 		return $rv;
 	}
 
+	/* Builds/executes an INSERT Query */
 	function insertrec($table,$rec) {
 		$this->_msg("CALL: PDOE::insertrec($table,$rec)");
 		$placeholders = array_fill(0,count($rec),'?');
@@ -180,6 +216,7 @@ class PDOE extends PDO {
 		return $rv;
 	}	
 
+	/* Builds/executes a SELECT query suitable for fetching a single record */
 	function fetch($table,$where=null,$column=null) {
 		$this->_msg("CALL: PDOE::fetch($table,$where)");
 		// possibly query could be hashed by table and where parameters
@@ -199,6 +236,7 @@ class PDOE extends PDO {
 		return $rv;
 	}
 
+	/* Builds/executes a DELETE query */
 	function deleterec($table,$where=null) {
 		$qw = new PDOE_QueryWriter(array(
 			'table'=>$table,'where'=>$where,'pdoe'=>$this));
@@ -212,6 +250,7 @@ class PDOE extends PDO {
 		return $rv;
 	}
 
+	/* Returns the name of the primary key for a given table */
 	function prikey($table,$forcecheck=false) {
 		global $_prikey_cache;
 		if( !$forcecheck && isset($_prikey_cache[$table]) ) {
