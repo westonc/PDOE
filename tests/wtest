@@ -53,7 +53,6 @@ wtest(); function wtest() {
 
 function wtest_throw_error_exception($number = 0, $str = '',$file = null,$line = null) {
     throw new ErrorException($str, 0, $number, $file, $line);
-    die("WTF? Control flow shouldn't *ever* reach here");
 }
 
 ?>
