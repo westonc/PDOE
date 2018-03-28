@@ -19,9 +19,10 @@ class Test_PDOE_MySQL extends WTestSet {
 
 	function test_check_pdo_mysql_install() {
 		$drivers = PDO::getAvailableDrivers();
-		return $this->assert(array_search('mysql',$drivers),
-			"No MySQL Driver"
-		);
+		$result = $this->assert(array_search('mysql',$drivers), "No MySQL Driver");
+		if(!$result)
+			throw new Exception($this->last_log(),TEST_SET_ABORT);
+		return $result;
 	}
 
 	function test_connect() {
