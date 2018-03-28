@@ -156,11 +156,6 @@ class Test_PDOE_SQLite extends WTestSet {
 
 	function test_reduce() {
 
-		function reduce_cb($row,$acc = 1) { 
-			$acc = $acc ? $acc : 1;
-			return $row['id'] * $acc; 
-		}
-
 		$idsReduced = $this->pdoe->reduce(array(
 			'table'		=> 'person',
 			'callback'	=> 'reduce_cb'));
@@ -168,8 +163,6 @@ class Test_PDOE_SQLite extends WTestSet {
 	}
 
 	function test_map() {
-
-		function map_cb($row) { return strlen($row['lastname']); }
 
 		$namesMapped = $this->pdoe->map(array(
 			'table'		=> 'person',
@@ -181,10 +174,7 @@ class Test_PDOE_SQLite extends WTestSet {
 
 	function test_walk() {
 
-		function walk_cb($row) { echo ' ',$row['firstname']; }
-
 		ob_start();
-
 		$this->pdoe->walk(array(
 			'table'		=> 'person',
 			'callback'	=> 'walk_cb'));	
