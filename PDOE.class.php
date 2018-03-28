@@ -141,7 +141,7 @@ class PDOE extends PDO {
 		   that matches the name of the primary key for $table
 	*/
 	function saverec($table,$rec,$identifier=null) {
-		$this->_msg("CALL: PDOE::saverec($table,$rec,$identifier)");
+		$this->_msg('CALL: PDOE::saverec(',$table,',',$rec,',',$identifier,')');
 		if(is_array($identifier) && (count(identifier) > 0)) { 
 			$rv = $this->updaterec($table,$rec,$identifier) ? true: false;
 		} 
@@ -151,13 +151,13 @@ class PDOE extends PDO {
 		else {
 			$rv = $this->insertrec($table,$rec);
 		}
-		$this->_msg("RETURN: PDOE::saverec() = $rv");
+		$this->_msg('RETURN: PDOE::saverec() = ',$rv);
 		return $rv;
 	}
 
 	/* Builds/executes an UPDATE Query */
 	function updaterec($table,$rec,$where=null) {
-		$this->_msg("CALL: PDOE::updaterec($table,$rec,$where)");
+		$this->_msg('CALL: PDOE::updaterec(',$table,',',$rec,',',$where,')');
 		// possibly query could be hashed by table and where parameters
 		// to an already prepared statement
 		$query = array("UPDATE $table SET ");
@@ -187,13 +187,13 @@ class PDOE extends PDO {
 			throw new Exception("query wasn't succesfully prepared |$query|");
 
 		$rv = $result ? $sth->rowCount() : false;
-		$this->_msg("RETURN: PDOE::updaterec() = $rv");
+		$this->_msg('RETURN: PDOE::updaterec() = ',$rv);
 		return $rv;
 	}
 
 	/* Builds/executes an INSERT Query */
 	function insertrec($table,$rec) {
-		$this->_msg("CALL: PDOE::insertrec($table,$rec)");
+		$this->_msg('CALL: PDOE::insertrec(',$table,',',$rec,')');
 		$placeholders = array_fill(0,count($rec),'?');
 		$values = array_values($rec);
 		if(!array_key_exists(0,$rec) && ($keys = array_keys($rec)) ) {
@@ -212,13 +212,13 @@ class PDOE extends PDO {
 			throw new Exception("failure preparing query |$query| - no statement handle");
 		$result = $sth->execute($values);
 		$rv = $result ? $this->lastInsertId() : false;
-		$this->_msg("RETURN: PDOE::insertrec() = $rv");
+		$this->_msg('RETURN: PDOE::insertrec() = ',$rv);
 		return $rv;
 	}	
 
 	/* Builds/executes a SELECT query suitable for fetching a single record */
 	function fetch($table,$where=null,$column=null) {
-		$this->_msg("CALL: PDOE::fetch($table,$where)");
+		$this->_msg('CALL: PDOE::fetch(',$table,',',$where,')');
 		// possibly query could be hashed by table and where parameters
 		// to an already prepared statement
 		$qw = new PDOE_QueryWriter(array(
@@ -232,7 +232,7 @@ class PDOE extends PDO {
 		 	$rv = $sth->fetch(PDO::FETCH_ASSOC);
 		} else 
 		 	$rv = false;
-		$this->_msg("RETURN: PDOE::fetch() = $rv");
+		$this->_msg('RETURN: PDOE::fetch() = ',$rv);
 		return $rv;
 	}
 
@@ -291,7 +291,10 @@ class PDOE extends PDO {
 	}
 
 	function _msg($m) {
-		$this->_msgs[] = $m;
+		$this->_msgs[] = implode('',array_map(
+			function ($arg) { return var_export($arg,true); },
+			func_get_args()
+		));
 		//MSGS::add($m);
 	}
 
