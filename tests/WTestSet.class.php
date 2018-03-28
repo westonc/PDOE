@@ -1,5 +1,6 @@
 <?php
 
+define('TEST_SET_ABORT',-1);
 define('_T','    ');
 $_t = _T;
 
@@ -40,7 +41,11 @@ class WTestSet {
 				}
 			} catch(Exception $e) {
 				$failed++;
-				echo "fail (",$e->getMessage(),")\n";
+				echo "fail (exception: ",$e->getMessage()," [line ",$e->getLine()," of ",$e->getFile(),"] ) \n";
+				if($e->getCode() == TEST_SET_ABORT) {
+					echo $indent,"This is a test set aborting failure, exiting test set\n";
+					break;
+				}
 			}
 		}
 		echo $indent,"pass: $passed  fail: $failed total: $testMethodCount\n";
@@ -59,6 +64,10 @@ class WTestSet {
 	function log() {
 		$args = func_get_args();
 		$this->log[] = implode(null,$args);
+	}
+
+	function last_log() {
+		return end($this->log);
 	}
 
 	function log2str($sep="\n") {
