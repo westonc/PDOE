@@ -3,7 +3,9 @@
 
 require_once('WTestSet.class.php');
 
-wtest(); function wtest() {
+wtest(); 
+
+function wtest() {
 	global $_t;
 	$files = glob('*.test.php');
 	echo "LOADING ",($n = count($files))," test files\n";
@@ -26,12 +28,12 @@ wtest(); function wtest() {
 		echo '*WARNING*: ';
 	echo "$wc classes for $i files\n";
 
-	echo "\nRUNNING test sets:\n";
+	echo "\nRUNNING test sets:";
 	set_error_handler('wtest_throw_error_exception',E_ALL);	
 	$complete = 0; $incomplete = 0; $i=0;
 	foreach($wtestSubclasses as $wtc) {
 		$i++;
-		echo "* set $wtc [#$i of $wc]: ";
+		echo "\n\n* set $wtc [#$i of $wc]: ";
 		try {
 			$wto = new $wtc;
 			$score = $wto->run();
