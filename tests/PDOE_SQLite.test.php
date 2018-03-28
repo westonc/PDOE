@@ -244,25 +244,4 @@ class Test_PDOE_SQLite extends WTestSet {
 	} 
 }
 
-class _Test_Walk {
-	/* Can't nest classes in PHP? Otherwise this would be in test_operate */
-	function withRow($row) { echo "\n",implode(',',$row); }
-	function collectIds($row) { if(isset($row['id'])) $this->ids[] = $row['id']; }
-	function collectFirstNames($row) { 
-		if(isset($row['firstname'])) $this->firstnames[] = $row['firstnames']; 
-	}
-	function collectLastNames($row) { 
-		if(isset($row['lastname'])) $this->lastnames[] = $row['lastnames']; 
-	}
-	function collectEmails($row) { 
-		if(isset($row['email'])) $this->emails[] = $row['email']; 
-	}
-	function collectPhones($row) { 
-		if(isset($row['phone'])) $this->phones[] = $row['phone']; 
-	}
-}
 
-
-
-
-?>

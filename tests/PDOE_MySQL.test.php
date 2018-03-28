@@ -250,5 +250,3 @@ class Test_PDOE_MySQL extends WTestSet {
 }
 
 
-
-?>
