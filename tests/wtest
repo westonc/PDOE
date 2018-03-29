@@ -20,37 +20,41 @@ function wtest() {
 	$declaredClasses = get_declared_classes();
 	$wtestSubclasses = array(); 
     foreach($declaredClasses as $c) {
-        if(is_subclass_of($c,'WTestSet')) {
+        if(is_subclass_of($c,'WTestSet') && !preg_match('/_common$/i',$c)) {
 			$wtestSubclasses[] = $c;
 		}
     }
-	if(($wc = count($wtestSubclasses)) != $i) 
+	$wc = count($wtestSubclasses);
+	if($wc != $i) 
 		echo '*WARNING*: ';
 	echo "$wc classes for $i files\n";
 
-	echo "\nRUNNING test sets:";
+	echo "\nRUNNING test sets:\n";
 	set_error_handler('wtest_throw_error_exception',E_ALL);	
 	$complete = 0; $incomplete = 0; $i=0;
 	foreach($wtestSubclasses as $wtc) {
 		$i++;
-		echo "\n\n* set $wtc [#$i of $wc]: ";
+		echo "* set $wtc [#$i of $wc]: \n";
 		try {
 			$wto = new $wtc;
+			$wto->setup();
 			$score = $wto->run();
 			if($score == 1) {
 				$complete++;
-				echo "passes completely\n";
+				echo $_t,"passes completely\n";
 			} else {
 				$incomplete++;
-				echo "incomplete (score: $score)";
+				echo $_t,"incomplete (score: $score)\n";
 			}
 		} catch(Exception $e) {
 			$incomplete++;
-			echo "failed while incomplete (",$e->getMessage(),")\n";
+			echo $_t,"failed while incomplete (",$e->getMessage(),")\n";
 		}
+		$wto->takedown();
+		echo "\n";
 	}
-	echo "\nSUMMARY";
-	echo "\n{$_t}complete: $complete incomplete: $incomplete total: $wc\n";
+	echo "SUMMARY\n";
+	echo "{$_t}complete: $complete incomplete: $incomplete total: $wc\n\n";
 }
 
 function wtest_throw_error_exception($number = 0, $str = '',$file = null,$line = null) {

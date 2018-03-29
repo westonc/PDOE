@@ -1,6 +1,7 @@
 <?php
 
 define('TEST_SET_ABORT',-1);
+define('ABORT_ON_FAIL',1);
 define('_T','    ');
 $_t = _T;
 
@@ -8,7 +9,7 @@ class WTestSet {
 
 	var $log;
 
-	function WTestSet() { 
+	function __construct() { 
 		$this->clearLog(); 
 	}
 
@@ -16,7 +17,47 @@ class WTestSet {
 		$this->log = array(); 
 	}
 
+	function bookend($prefix,$indent=_T,$abortOnFail=false) {
+		$failure = false;
+		$symbol = ($prefix == 'setup') ? 'α' : ( ($prefix == 'takedown') ? 'Ω' : '-' );
+		foreach(get_class_methods(get_class($this)) as $methodName) {
+			$matches = array();
+			if(strpos($methodName,$prefix.'_') === 0) {
+				echo $indent,"$symbol $methodName: ";
+				$this->clearLog();
+				try {
+					if($this->$methodName()) 
+						echo "done\n";
+					else {
+						echo "fail (",$this->log2str(', '),")\n";
+						if($abortOnFail) {
+							$failure = true;				
+							break;
+						}
+					}
+				} catch(Exception $e) {
+					echo "fail (exception: ",$e->getMessage()," [line ",$e->getLine()," of ",$e->getFile(),"] ) \n";
+					if($abortOnFail) {
+						$failure = true;				
+						break;
+					}
+				}
+			}
+		}
+		if($failure && $abortOnFail) {
+			$fail_flag_name = "_{$prefix}_failed";
+			$this->$fail_flag_name = true;
+		}
+		return !$failure;
+	}
+
+	function setup($indent=_T) {  // extend and/or use default small setup_ methods
+		return $this->bookend('setup',$indent,ABORT_ON_FAIL);
+	}
+
 	function run($indent=_T) {
+		if(isset($this->_setup_failed)) return 0;
+			
 		$testMethods = array();
 		foreach(get_class_methods(get_class($this)) as $method) {
 			$matches = array();
@@ -25,7 +66,7 @@ class WTestSet {
 			}
 		}
 		$testMethodCount = count($testMethods);
-		echo $testMethodCount," test methods\n";
+		echo $indent,$testMethodCount," test methods\n";
 		$passed = 0; $failed = 0; $i = 0;
 		foreach($testMethods as $testName => $methodName) {
 			$i++;
@@ -51,6 +92,10 @@ class WTestSet {
 		echo $indent,"pass: $passed  fail: $failed total: $testMethodCount\n";
 
 		return ($passed/$testMethodCount);
+	}
+
+	function takedown($indent=_T) { //extend or use default
+		return $this->bookend('takedown',$indent);
 	}
 
 	function assert($condition,$failmsg) {
