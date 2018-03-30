@@ -1,8 +1,0 @@
-<?php
-
-include('PDOE_SQLite.test.php');
-$t = new Test_PDOE_SQLite;
-$t->test_createDB();
-$t->test_createPDOE();
-
-?>
