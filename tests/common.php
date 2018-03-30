@@ -87,7 +87,12 @@ class Test_PDOE_common extends WTestSet {
 	}
 
 	function test_insertrec() {
-		$this->rec4 = array(null,'Vlad','Impaler','vlad@vampire.not','3215550000');
+		$this->rec4 = [
+			'firstname' => 'Vlad',
+			'lastname' => 'Impaler',
+			'email' => 'vlad@vampire.not',
+			'phone' => '3215550000'
+		];
 		return $this->assert(
 			$this->r4id = $this->pdoe->insertrec('person',$this->rec4),
 			"couldn't insert record 4 ".$this->_dberr($this->pdoe)
@@ -116,7 +121,12 @@ class Test_PDOE_common extends WTestSet {
 	}
 
 	function test_saveRecord() {
-		$this->rec5 = array(null,'Zod','Of Krypton','bow2zod@phantomzone.not','3215552692');
+		$this->rec5 = [
+			'firstname' => 'Zod',
+			'lastname' => 'Of Krypton',
+			'email' => 'bow2zod@phantomzone.not',
+			'phone' => '3215552692'
+		];
 		$rv = $this->assert(
 			$this->rec4fetched = $this->pdoe->fetch('person',$this->r4id),
 			"couldn't fetch record 4".$this->_dberr($this->pdoe)
@@ -228,15 +238,6 @@ class Test_PDOE_common extends WTestSet {
 				'Not all Bruces deleted');
 	} 
 
-	function test_destroyDB() {
-		return $this->assert(
-			$this->dbh->exec("DROP TABLE person"),
-			"couldn't drop table person".implode(null,$this->dbh->errorInfo())
-		) && $this->assert(
-			unlink('./pdoetestdb'),
-			"couldn't delete test db"
-		);
-	} 
 }
 
 
