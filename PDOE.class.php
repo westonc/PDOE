@@ -255,6 +255,8 @@ class PDOE extends PDO {
 		global $_prikey_cache;
 		if( !$forcecheck && isset($_prikey_cache[$table]) ) {
 			$rv = $_prikey_cache[$table];
+		} else if($this->driver == 'pgsql') {
+			$rv = $this->_prikey_pgsql($table);
 		} else if($this->driver == 'sqlite') {
 			$rv = $this->_prikey_sqlite($table);
 		} else
@@ -288,6 +290,15 @@ class PDOE extends PDO {
 			}
 		}
 		return $rv;
+	}
+
+	function _prikey_pgsql($table) {
+		$qry = "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid='$table'::regclass AND i.indisprimary;";
+		$sth = $this->query($qry);
+		if(!$sth) 
+			throw new Exception("statement handle not available -- problem with query |$qry|?");
+		$row = $sth->fetch(PDO::FETCH_NUM);
+		return $row[0];
 	}
 
 	function _msg($m) {
