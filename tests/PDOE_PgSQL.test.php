@@ -4,17 +4,16 @@ require_once('WTestSet.class.php');
 require_once('../PDOE.class.php');
 require_once('common.php');
 
-class Test_PDOE_SQLite extends Test_PDOE_common {
+class Test_PDOE_PgSQL extends Test_PDOE_common {
+	
+	static $dsn = "pgsql:dbname=test";
 
 	function setup_create_DB() {
-		$sqlite_err = '';
-		$this->dbfile = './pdoetestdb';
-
 		return $this->assert(
-			$this->dbh = $dbh = new PDO("sqlite:$this->dbfile"),
-			"couldn't create pdoetestdb ".$this->_dberr($dbh)
+			$this->dbh = $dbh = new PDO(self::$dsn),
+			"couldn't connect using dsn: ".self::$dsn.' '.$this->_dberr($dbh)
 		) && $this->assert(
-			!($dbh->exec("CREATE TABLE person (id INTEGER PRIMARY KEY, firstname, lastname, email , phone )") === false),
+			!($dbh->exec("CREATE TABLE person ( id SERIAL PRIMARY KEY, firstname TEXT, lastname TEXT, email TEXT, phone TEXT)") === false),
 			"couldn't create person table ".$this->_dberr($dbh)
 		);
 	} 
@@ -38,7 +37,7 @@ class Test_PDOE_SQLite extends Test_PDOE_common {
 
 	function setup_create_PDOE() {
 		return $this->assert(
-			$this->pdoe = new PDOE("sqlite:$this->dbfile"),
+			$this->pdoe = new PDOE(self::$dsn),
 			"couldn't create/connect PDOE ".$this->_dberr($this->pdoe)
 		);
 	}
@@ -46,12 +45,9 @@ class Test_PDOE_SQLite extends Test_PDOE_common {
 	function takedown_destroy_DB() {
 		return $this->assert(
 			$this->dbh->exec("DROP TABLE person")!==false,
-			"couldn't drop table person".implode(null,$this->dbh->errorInfo())
-		) && $this->assert(
-			unlink('./pdoetestdb'),
-			"couldn't delete test db"
+			"couldn't drop table person: ".implode(' ',$this->dbh->errorInfo())
 		);
-	} 
+	}
 }
 
 

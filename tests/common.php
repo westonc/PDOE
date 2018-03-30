@@ -11,14 +11,15 @@ function dberr($dbh) {
 	return implode(',',$dbh->errorInfo());
 }
 
-function cmpTestRec($a1,$a2) {
-	if(!is_array($a1)) throw new ErrorException('first argument to cmpTestRec is not an array');
-	if(!is_array($a2)) throw new ErrorException('second argument to cmpTestRec is not an array');
-	$v1 = array_values($a1);
-	$v2 = array_values($a2);
-	array_shift($v1);
-	array_shift($v2);
-	$rv = !array_diff($v1,$v2);
+function cmpTestRec($fetched,$reference) {
+	//if(!is_array($a1)) throw new ErrorException('first argument to cmpTestRec is not an array');
+	//if(!is_array($a2)) throw new ErrorException('second argument to cmpTestRec is not an array');
+	$copy = $fetched;
+	unset($copy[0]);
+	unset($copy['id']);
+	$fetched_values = array_values($copy);
+	$reference_values = array_values($reference);
+	$rv = !array_diff($fetched_values,$reference_values);
 	return $rv;
 }
 
