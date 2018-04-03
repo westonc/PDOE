@@ -104,7 +104,11 @@ class PDOE extends PDO {
 					$tmp = $this->array2where($where);
 					$where = $tmp['where'];
 					$params = $tmp['params'];
-				} 
+				} else if(is_string($where)) {
+					$where = trim($where);
+					if(strncasecmp($where,'where',5) !== 0)
+						$where .= 'where ';
+				}
 			} else
 				$where = null;
 
@@ -117,7 +121,7 @@ class PDOE extends PDO {
 		} else if( !($sth instanceof PDOStatement) ) {
 			throw new Exception("PDOE::op ended up with non-PDOStatement statement handle. Weird.");
 		} else if(! $sth->execute(isset($params) ? $params : null) ) {
-			throw new Exception('PDOE::op: Error executing statement: '.$sth->errorInfo());
+			throw new Exception("PDOE::op: Error executing statement: \n".var_export($sth->errorInfo(),true)."\nsql: |$sql|");
 		} 
 		return $sth;
 	}
@@ -125,12 +129,12 @@ class PDOE extends PDO {
 
 	/* yeah, I'm not sure I remember what this is for. Utility for getting dates in MySQL format? */
 	function datef($d=null,$timeInFormat = false) {
-		$this->_msg("CALL: datef($d,$timeInFormat)");
+		$this->_msg('CALL: datef(',$d,',',$timeInFormat,')');
 		$t = is_numeric($d) ? $d : strtotime($d);
 		$format = $timeInFormat ? 'Y-m-d H:i:s' : 'Y-m-d';
-		$this->_msg("t: $t format: $format");
+		$this->_msg('t: ',$t,' format: ',$format);
 		$rv = Date($format,$t);
-		$this->_msg("RETURN: datef() = $rv");
+		$this->_msg('RETURN: datef() = ',$rv);
 		return $rv;
 	}
 
@@ -234,6 +238,10 @@ class PDOE extends PDO {
 		 	$rv = false;
 		$this->_msg('RETURN: PDOE::fetch() = ',$rv);
 		return $rv;
+	}
+	
+	function find($table,$where=null,$additional=null) {
+		return array();
 	}
 
 	/* Builds/executes a DELETE query */

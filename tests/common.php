@@ -153,6 +153,17 @@ class Test_PDOE_common extends WTestSet {
 		);
 	}
 
+	function test_findEverything() {
+		$persons = $this->pdoe->find('person');
+		if(! ($first = reset($persons)) )
+			return true;
+		$keys = array_keys($first);
+		echo implode("\t",$keys),"\n";
+		foreach($persons as $person) 
+			echo implode("\t",array_values($person)),"\n";
+		return true;
+	}
+
 	function test_deleteRecord() {
 		return $this->assert(
 			$this->pdoe->deleterec('person',$this->r5id),
